@@ -5,10 +5,10 @@ This is the class that should be used as a starting point to access a handle to
 use this library.
 """
 
-from tailscale_localapi.v0.api import API_V0
+from tailscale_cli.v0.api import API_V0
 
 
-class TailscaleAPI:
+class TailscaleCLI:
     @classmethod
     def v0(cls, *, socket_path: str = "/run/tailscale/tailcaled.sock") -> API_V0:
         """

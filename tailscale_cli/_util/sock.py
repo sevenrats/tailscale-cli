@@ -7,7 +7,7 @@ from urllib3.connectionpool import HTTPConnectionPool
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError
 
-from tailscale_localapi._util.error import TailscaleException
+from tailscale_cli._util.error import TailscaleException
 
 
 class SockConnection(HTTPConnection):
