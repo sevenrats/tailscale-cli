@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 @dataclass
-class Self:
+class NodeInfo:
     ID: str
     PublicKey: str
     HostName: str
@@ -12,6 +12,7 @@ class Self:
     OS: str
     UserID: int
     TailscaleIPs: Optional[List[str]]
+    AllowedIPs: Optional[List[str]]
     Addrs: List[str]
     CurAddr: str
     Relay: str
@@ -25,16 +26,27 @@ class Self:
     ExitNode: bool
     ExitNodeOption: bool
     Active: bool
-    PeerAPIURL: Optional[str]
+    PeerAPIURL: Optional[List[str]]
+    Capabilities: Optional[List[str]]
     InNetworkMap: bool
     InMagicSock: bool
     InEngine: bool
+    CapMap: Optional[dict] = None
+
+@dataclass
+class Self(NodeInfo):
+    pass
+
+@dataclass
+class Peer(NodeInfo):
+    pass
 
 @dataclass
 class Status:
     Version: str
     TUN: bool
     BackendState: str
+    HaveNodeKey: Optional[bool]
     AuthURL: str
     TailscaleIPs: Optional[List[str]]
     Self: Self
@@ -53,6 +65,8 @@ class Status:
     @staticmethod
     def deserialize(data: str) -> 'Status':
         """Deserializes JSON string to a Status object."""
+        print(data)
         dict_data = json.loads(data)
         dict_data['Self'] = Self(**dict_data['Self'])
+        dict_data['Peer'] = [Peer(**value) for value in dict_data['Peer'].values()]
         return Status(**dict_data)
