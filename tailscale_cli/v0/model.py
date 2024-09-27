@@ -64,7 +64,7 @@ class NodeInfo():
     OS: str
     UserID: int
     TailscaleIPs: Optional[List[str]]
-    AllowedIPs: Optional[List[str]]
+    AllowedIPs: Optional[List[str]] = None
     Tags: Optional[TagList] = None
     Addrs: List[str]
     CurAddr: str
@@ -80,7 +80,7 @@ class NodeInfo():
     ExitNodeOption: bool
     Active: bool
     PeerAPIURL: Optional[List[str]]
-    Capabilities: Optional[List[str]]
+    Capabilities: Optional[List[str]] = None
     CapMap: Optional[dict] = None
     InNetworkMap: bool
     InMagicSock: bool
@@ -131,5 +131,7 @@ class Status:
         if isinstance(data, str):
             data = json.loads(data)
         data['Self'] = Self.deserialize(data['Self'])
-        data['Peer'] = [Peer.deserialize(value) for value in data['Peer'].values()]
+        data['Peer'] = [
+            Peer.deserialize(value) for value in data['Peer'].values()
+        ] if data['Peer'] is not None else None
         return cls(**data)
