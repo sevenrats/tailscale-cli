@@ -105,12 +105,12 @@ class Self(NodeInfo):
 class Peer(NodeInfo):
     pass
 
-@dataclass
+@dataclass(kw_only=True)
 class Status:
     Version: str
     TUN: bool
     BackendState: str
-    HaveNodeKey: Optional[bool]
+    HaveNodeKey: Optional[bool] = False
     AuthURL: str
     TailscaleIPs: Optional[List[str]]
     Self: Self
