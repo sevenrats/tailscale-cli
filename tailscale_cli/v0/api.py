@@ -4,7 +4,7 @@ import requests
 
 from tailscale_cli._util.error import TailscaleException
 from tailscale_cli._util.sock import SockAdapter
-from tailscale_cli.v0.ipnstate import (
+from .ipnstate import (
     PingResult,
     Status,
 )
