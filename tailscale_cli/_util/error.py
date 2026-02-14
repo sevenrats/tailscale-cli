@@ -17,13 +17,21 @@ class TailscaleException(Exception):
         self.message = message
 
     def connection_error():
-        return TailscaleException(TailscaleError.CONNECTION_ERROR, "could not connect to Tailscale socket")
+        return TailscaleException(
+            TailscaleError.CONNECTION_ERROR, "could not connect to Tailscale socket"
+        )
 
     def from_status_code(code: int, message: str = ""):
         if code == 401:
-            return TailscaleException(TailscaleError.UNAUTHORIZED, "unauthorized API access, try running as root")
+            return TailscaleException(
+                TailscaleError.UNAUTHORIZED,
+                "unauthorized API access, try running as root",
+            )
         else:
-            return TailscaleException(TailscaleError.HTTP_ERROR, f"got unexpected HTTP status code: ${code}: ${message}")
+            return TailscaleException(
+                TailscaleError.HTTP_ERROR,
+                f"got unexpected HTTP status code: ${code}: ${message}",
+            )
 
     def other(message):
         return TailscaleException(TailscaleError.OTHER, message)

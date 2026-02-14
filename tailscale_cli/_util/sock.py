@@ -1,13 +1,13 @@
 import socket
 
-SOCK = "%2Frun%2Ftailscale%2Ftailscaled.sock"
-
-from urllib3.connection import HTTPConnection
-from urllib3.connectionpool import HTTPConnectionPool
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError
+from urllib3.connection import HTTPConnection
+from urllib3.connectionpool import HTTPConnectionPool
 
 from tailscale_cli._util.error import TailscaleException
+
+SOCK = "%2Frun%2Ftailscale%2Ftailscaled.sock"
 
 
 class SockConnection(HTTPConnection):
