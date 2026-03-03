@@ -307,21 +307,8 @@ def _existing_version_dirs(base_package: str) -> set[str]:
     }
 
 
-def _detect_min_version(existing: set[str]) -> tuple[int, ...]:
-    """Detect the minimum version from already-generated packages.
-
-    Falls back to (1, 50, 0) if nothing exists yet.
-    """
-    import re as _re
-
-    versions: list[tuple[int, ...]] = []
-    for name in existing:
-        m = _re.match(r"v(\d+)_(\d+)_(\d+)", name)
-        if m:
-            versions.append((int(m.group(1)), int(m.group(2)), int(m.group(3))))
-    if versions:
-        return min(versions)
-    return (1, 50, 0)
+# Oldest Tailscale version we care about generating stubs for.
+MIN_UPSTREAM_VERSION = (1, 90, 0)
 
 
 def _sync_tags(cfg: Dict[str, Any], args: argparse.Namespace) -> int:
@@ -336,7 +323,7 @@ def _sync_tags(cfg: Dict[str, Any], args: argparse.Namespace) -> int:
         parts = args.min_version.replace("v", "").split(".")
         min_ver = tuple(int(p) for p in parts)
     else:
-        min_ver = _detect_min_version(existing)
+        min_ver = MIN_UPSTREAM_VERSION
 
     print(f"Fetching upstream tags from {upstream_repo}…")
     all_tags = fetch_release_tags(

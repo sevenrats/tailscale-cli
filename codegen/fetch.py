@@ -88,7 +88,7 @@ def fetch_release_tags(
     repo: str,
     *,
     stable_only: bool = True,
-    min_version: tuple[int, ...] = (1, 50, 0),
+    min_version: tuple[int, ...] = (1, 90, 0),
 ) -> List[str]:
     """
     Fetch release tags from a GitHub repo.

@@ -3,7 +3,7 @@ Auto-generated from upstream Go source — DO NOT EDIT.
 
 Source : https://github.com/tailscale/tailscale/blob/b1eb1a05c38c7ea682ddbfcdbd2112304f880d9e/ipn/ipnstate/ipnstate.go
 Commit : b1eb1a05c38c7ea682ddbfcdbd2112304f880d9e
-Generated: 2026-03-01T16:02:39Z
+Generated: 2026-03-03T21:22:15Z
 """
 
 from __future__ import annotations
@@ -42,9 +42,9 @@ class TaildropTargetStatus(IntEnum):
 
 
 class SelfUpdateStatus(str, Enum):
-    UPDATE_FINISHED = "UpdateFinished"
-    UPDATE_IN_PROGRESS = "UpdateInProgress"
-    UPDATE_FAILED = "UpdateFailed"
+    UPDATE_FINISHED = 'UpdateFinished'
+    UPDATE_IN_PROGRESS = 'UpdateInProgress'
+    UPDATE_FAILED = 'UpdateFailed'
 
 
 # go:generate go run tailscale.com/cmd/cloner  -clonefunc=false -type=TKAPeer
@@ -55,21 +55,15 @@ class Status(SerdeMixin):
     tun: bool = False  # json="TUN"
     backend_state: str = ""  # json="BackendState"
     have_node_key: bool = False  # json="HaveNodeKey"
-    auth_url: str = (
-        ""  # json="AuthURL"; current URL provided by control to authorize client
-    )
-    tailscale_i_ps: List[Addr] = field(
-        default_factory=list
-    )  # json="TailscaleIPs"; Tailscale IP(s) assigned to this node
+    auth_url: str = ""  # json="AuthURL"; current URL provided by control to authorize client
+    tailscale_i_ps: List[Addr] = field(default_factory=list)  # json="TailscaleIPs"; Tailscale IP(s) assigned to this node
     _self: Optional[PeerStatus] = None  # json="Self"
     exit_node_status: Optional[ExitNodeStatus] = None  # json="ExitNodeStatus"
     health: List[str] = field(default_factory=list)  # json="Health"
     magic_dns_suffix: str = ""  # json="MagicDNSSuffix"
     current_tailnet: Optional[TailnetStatus] = None  # json="CurrentTailnet"
     cert_domains: List[str] = field(default_factory=list)  # json="CertDomains"
-    peer: Dict[NodePublic, Optional[PeerStatus]] = field(
-        default_factory=dict
-    )  # json="Peer"
+    peer: Dict[NodePublic, Optional[PeerStatus]] = field(default_factory=dict)  # json="Peer"
     user: Dict[UserID, Dict[str, Any]] = field(default_factory=dict)  # json="User"
     client_version: Optional[Dict[str, Any]] = None  # json="ClientVersion"
 
@@ -114,13 +108,9 @@ class TKAPeer(SerdeMixin):
     name: str = ""  # json="Name"; DNS
     id: NodeID = NodeID(0)  # json="ID"
     stable_id: StableNodeID = StableNodeID("")  # json="StableID"
-    tailscale_i_ps: List[Addr] = field(
-        default_factory=list
-    )  # json="TailscaleIPs"; Tailscale IP(s) assigned to this node
+    tailscale_i_ps: List[Addr] = field(default_factory=list)  # json="TailscaleIPs"; Tailscale IP(s) assigned to this node
     node_key: NodePublic = NodePublic("")  # json="NodeKey"
-    node_key_signature: NodeKeySignature = NodeKeySignature(
-        ""
-    )  # json="NodeKeySignature"
+    node_key_signature: NodeKeySignature = NodeKeySignature("")  # json="NodeKeySignature"
 
     # JSON key name → Python field name
     __json_map__: ClassVar[Dict[str, str]] = {
@@ -145,12 +135,8 @@ class NetworkLockStatus(SerdeMixin):
     node_key_signed: bool = False  # json="NodeKeySigned"
     node_key_signature: Optional[NodeKeySignature] = None  # json="NodeKeySignature"
     trusted_keys: List[TKAKey] = field(default_factory=list)  # json="TrustedKeys"
-    visible_peers: List[Optional[TKAPeer]] = field(
-        default_factory=list
-    )  # json="VisiblePeers"
-    filtered_peers: List[Optional[TKAPeer]] = field(
-        default_factory=list
-    )  # json="FilteredPeers"
+    visible_peers: List[Optional[TKAPeer]] = field(default_factory=list)  # json="VisiblePeers"
+    filtered_peers: List[Optional[TKAPeer]] = field(default_factory=list)  # json="FilteredPeers"
     state_id: int = 0  # json="StateID"
 
     # JSON key name → Python field name
@@ -216,14 +202,14 @@ class ExitNodeStatus(SerdeMixin):
 @dataclass
 class PeerStatusLite(SerdeMixin):
     node_key: NodePublic = NodePublic("")  # json="NodeKey"
-    tx_bytes: Dict[str, Any] = field(default_factory=dict)  # json="TxBytes,"
-    last_handshake: Optional[datetime] = None  # json="LastHandshake"
+    tx_bytes,: Dict[str, Any] = field(default_factory=dict)  # json="TxBytes,"
+    last_handshake: datetime = None  # json="LastHandshake"
 
     # JSON key name → Python field name
     __json_map__: ClassVar[Dict[str, str]] = {
         "LastHandshake": "last_handshake",
         "NodeKey": "node_key",
-        "TxBytes,": "tx_bytes",
+        "TxBytes,": "tx_bytes,",
     }
 
 
@@ -252,30 +238,18 @@ class PeerStatus(SerdeMixin):
     peer_relay: str = ""  # json="PeerRelay"; peer relay address (ip:port:vni)
     rx_bytes: int = 0  # json="RxBytes"
     tx_bytes: int = 0  # json="TxBytes"
-    created: Optional[datetime] = (
-        None  # json="Created"; time registered with tailcontrol
-    )
-    last_write: Optional[datetime] = None  # json="LastWrite"; time last packet sent
-    last_seen: Optional[datetime] = (
-        None  # json="LastSeen"; last seen to tailcontrol; only present if offline
-    )
-    last_handshake: Optional[datetime] = (
-        None  # json="LastHandshake"; with local wireguard
-    )
-    online: bool = (
-        False  # json="Online"; whether node is connected to the control plane
-    )
-    exit_node: bool = (
-        False  # json="ExitNode"; true if this is the currently selected exit node.
-    )
+    created: datetime = None  # json="Created"; time registered with tailcontrol
+    last_write: datetime = None  # json="LastWrite"; time last packet sent
+    last_seen: datetime = None  # json="LastSeen"; last seen to tailcontrol; only present if offline
+    last_handshake: datetime = None  # json="LastHandshake"; with local wireguard
+    online: bool = False  # json="Online"; whether node is connected to the control plane
+    exit_node: bool = False  # json="ExitNode"; true if this is the currently selected exit node.
     exit_node_option: bool = False  # json="ExitNodeOption"; true if this node can be an exit node (offered && approved)
     active: bool = False  # json="Active"
     peer_apiurl: List[str] = field(default_factory=list)  # json="PeerAPIURL"
-    taildrop_target: Optional[TaildropTargetStatus] = None  # json="TaildropTarget"
+    taildrop_target: TaildropTargetStatus = None  # json="TaildropTarget"
     no_file_sharing_reason: str = ""  # json="NoFileSharingReason"
-    capabilities: List[NodeCapability] = field(
-        default_factory=list
-    )  # json="Capabilities"
+    capabilities: List[NodeCapability] = field(default_factory=list)  # json="Capabilities"
     cap_map: Dict[str, Any] = field(default_factory=dict)  # json="CapMap"
     ssh_host_keys: List[str] = field(default_factory=list)  # json="sshHostKeys"
     sharee_node: bool = False  # json="ShareeNode"
@@ -350,9 +324,7 @@ class StatusBuilder(SerdeMixin):
 class PingResult(SerdeMixin):
     ip: str = ""  # json="IP"; ping destination
     node_ip: str = ""  # json="NodeIP"; Tailscale IP of node handling IP (different for subnet routers)
-    node_name: str = (
-        ""  # json="NodeName"; DNS name base or (possibly not unique) hostname
-    )
+    node_name: str = ""  # json="NodeName"; DNS name base or (possibly not unique) hostname
     err: str = ""  # json="Err"
     latency_seconds: float = 0.0  # json="LatencySeconds"
     endpoint: str = ""  # json="Endpoint"
@@ -398,6 +370,12 @@ class DebugDERPRegionReport(SerdeMixin):
 
 @dataclass
 class UpdateProgress(SerdeMixin):
-    status: Optional[SelfUpdateStatus] = None
+    status: SelfUpdateStatus = None
     message: str = ""
     version: str = ""
+
+
+TaildropTargetStatus = NewType("TaildropTargetStatus", int)
+
+SelfUpdateStatus = NewType("SelfUpdateStatus", str)
+
