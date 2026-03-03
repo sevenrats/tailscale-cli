@@ -1,42 +1,52 @@
-from typing import Any, Dict, Optional, Union
+from __future__ import annotations
 
-import requests
+from typing import Any, Dict, Optional, TYPE_CHECKING, Union
+
+import httpx
 
 from tailscale_cli._util.error import TailscaleException
-from tailscale_cli._util.sock import SockAdapter
-from .ipnstate import (
-    PingResult,
-    Status,
-)
+from tailscale_cli._util.sock import make_client
+
+if TYPE_CHECKING:
+    pass
 
 
-class API_V0:
-    """Handle to Tailscale's local API"""
+class LocalAPI:
+    """Handle to Tailscale's local API.
 
-    _client: requests.Session = requests.Session()
+    The *models* parameter is a module (or any object) that exposes the
+    model classes ``Status`` and ``PingResult``.  This is typically one of
+    the auto-generated version packages, e.g.::
+
+        from tailscale_cli.v1_82_0 import ipnstate
+        api = LocalAPI(models=ipnstate)
+
+    If *models* is not supplied, the API still works but returns raw dicts
+    for structured responses.
+    """
+
+    _client: httpx.Client
     _socket_path: str
+    _models: Any  # version-specific models module (has Status, PingResult, …)
 
-    def __init__(self, *, socket_path: str = "/run/tailscale/tailscaled.sock"):
+    def __init__(
+        self,
+        *,
+        socket_path: str = "/run/tailscale/tailscaled.sock",
+        models: Any = None,
+    ):
         """
         Creates a handle to Tailscale's local API, through the path to
         `tailscaled` UNIX socket.
-        """
-        adapter = SockAdapter()
-        self._client.mount("http://ts/", adapter)
-        self._socket_path = socket_path
 
-        # Best-effort: teach the adapter the socket path (different adapters do this differently)
-        for attr in ("socket_path", "sock_path", "path"):
-            if hasattr(adapter, attr):
-                try:
-                    setattr(adapter, attr, socket_path)
-                except Exception:
-                    pass
-        if hasattr(adapter, "set_socket_path"):
-            try:
-                adapter.set_socket_path(socket_path)
-            except Exception:
-                pass
+        Args:
+            socket_path: Path to the tailscaled UNIX socket.
+            models: A module exposing model classes (Status, PingResult, …).
+                    Typically an auto-generated version package.
+        """
+        self._client = make_client(socket_path)
+        self._models = models
+        self._socket_path = socket_path
 
     # -------------------------
     # internals
@@ -47,7 +57,7 @@ class API_V0:
         # All of these CLI-like actions live under /localapi/v0/...
         if not path.startswith("localapi/v0/"):
             path = "localapi/v0/" + path
-        return "http://ts/" + path
+        return "/" + path
 
     def _request(
         self,
@@ -59,14 +69,10 @@ class API_V0:
         data: Optional[Union[str, bytes]] = None,
         headers: Optional[Dict[str, str]] = None,
         timeout: float = 30.0,
-    ) -> requests.Response:
+    ) -> httpx.Response:
         hdrs: Dict[str, str] = {}
         if headers:
             hdrs.update(headers)
-
-        # Best-effort: some SockAdapter implementations look for a header like this.
-        # If yours doesn't, it will be ignored.
-        hdrs.setdefault("X-TS-Socket-Path", self._socket_path)
 
         if json_body is not None:
             hdrs.setdefault("Content-Type", "application/json")
@@ -76,7 +82,7 @@ class API_V0:
             url=self._url(path),
             params=params,
             json=json_body,
-            data=data,
+            content=data,
             headers=hdrs,
             timeout=timeout,
         )
@@ -90,10 +96,16 @@ class API_V0:
     # public API
     # -------------------------
 
-    def status(self) -> Status:
-        # Show state of tailscaled and its connections
+    def status(self) -> Any:
+        """Show state of tailscaled and its connections.
+
+        Returns a ``Status`` model instance if *models* was provided,
+        otherwise the raw JSON dict.
+        """
         resp = self._request("GET", "status")
-        return Status.loads(resp.content.decode())
+        if self._models and hasattr(self._models, "Status"):
+            return self._models.Status.loads(resp.content.decode())
+        return resp.json()
 
     def ip(self) -> list[str]:
         # Show Tailscale IP addresses (convenience wrapper around status)
@@ -106,9 +118,12 @@ class API_V0:
         *,
         ping_type: str = "disco",
         size: int = 0,
-    ) -> PingResult:
+    ) -> Any:
         """
         Ping at the Tailscale layer.
+
+        Returns a ``PingResult`` model instance if *models* was provided,
+        otherwise the raw JSON dict.
 
         LocalAPI shape (as used by tailscale CLI) is:
           POST /localapi/v0/ping?ip=...&size=0&type=disco
@@ -118,7 +133,9 @@ class API_V0:
             "ping",
             params={"ip": ip_or_host, "size": str(int(size)), "type": ping_type},
         )
-        return PingResult.deserialize(resp.content.decode())
+        if self._models and hasattr(self._models, "PingResult"):
+            return self._models.PingResult.loads(resp.content.decode())
+        return resp.json()
 
     def whois(self, addr: str) -> Dict[str, Any]:
         """
@@ -128,7 +145,7 @@ class API_V0:
         resp = self._request("GET", "whois", params={"addr": addr})
         return resp.json()
 
-    def login(self) -> Status:
+    def login(self) -> Any:
         """
         Kick off interactive login (populates AuthURL in status if needed).
         LocalAPI route: /localapi/v0/login-interactive
@@ -206,9 +223,15 @@ class API_V0:
         # Serve content and local servers on your tailnet
         raise NotImplementedError("not implemented")
 
-    def version(self):
-        # Print Tailscale version
-        raise NotImplementedError("not implemented")
+    def version(self) -> Dict[str, Any]:
+        """Return the Tailscale daemon version information.
+
+        Queries ``GET /localapi/v0/version`` and returns the JSON response
+        which typically includes keys such as ``majorMinorPatch``, ``short``,
+        ``long``, ``gitCommit``, and ``cap``.
+        """
+        resp = self._request("GET", "version")
+        return resp.json()
 
     def web(self):
         # Run a web server for controlling Tailscale

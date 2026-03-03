@@ -1,0 +1,27 @@
+# GitHub Actions: verify generated models stay in sync with upstream.
+#
+# Runs on every PR and push to main.  Fails if `python -m codegen --check`
+# detects drift between the pinned upstream ref and the committed models.
+
+name: codegen-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install tomli
+
+      - name: Check generated models are up-to-date
+        run: python -m codegen --check

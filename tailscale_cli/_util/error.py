@@ -16,11 +16,13 @@ class TailscaleException(Exception):
         self.error = error
         self.message = message
 
+    @staticmethod
     def connection_error():
         return TailscaleException(
             TailscaleError.CONNECTION_ERROR, "could not connect to Tailscale socket"
         )
 
+    @staticmethod
     def from_status_code(code: int, message: str = ""):
         if code == 401:
             return TailscaleException(
@@ -33,5 +35,6 @@ class TailscaleException(Exception):
                 f"got unexpected HTTP status code: ${code}: ${message}",
             )
 
-    def other(message):
+    @staticmethod
+    def other(message: str):
         return TailscaleException(TailscaleError.OTHER, message)

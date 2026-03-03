@@ -10,15 +10,15 @@ from typing import (
     Dict,
     List,
     Mapping,
-    Optional,
     Tuple,
     Type,
     TypeVar,
+    Union,
     get_args,
     get_origin,
 )
 
-T = TypeVar("T")
+T = TypeVar("T", bound="SerdeMixin")
 
 
 def _dt_from_any(v: Any) -> Any:
@@ -53,9 +53,7 @@ def _is_optional(tp: Any) -> bool:
     origin = get_origin(tp)
     if origin is None:
         return False
-    if origin is Optional:
-        return True
-    if origin is type(Optional[int]).__origin__:  # Union
+    if origin is Union:
         args = get_args(tp)
         return any(a is type(None) for a in args)
     return False
@@ -152,26 +150,51 @@ class SerdeMixin:
     Fast serde for dataclasses:
       - from_dict / to_dict
       - from_json / to_json
+
+    Subclasses may define a ``__json_map__`` class variable — a
+    ``Dict[str, str]`` mapping JSON key names to Python field names.
+    This lets generated models handle CamelCase ↔ snake_case automatically.
     """
+
+    # Override in subclasses to remap JSON keys → Python field names.
+    # Example:  __json_map__: ClassVar[Dict[str, str]] = {"HostName": "host_name"}
+    __json_map__: Dict[str, str] = {}
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def _reverse_json_map(cls) -> Dict[str, str]:
+        """Python field name → JSON key name (inverse of __json_map__)."""
+        return {v: k for k, v in cls.__json_map__.items()}
 
     @classmethod
     def from_dict(cls: Type[T], d: Dict[str, Any]) -> T:
         if d is None:
-            return cls()  # type: ignore[call-arg]
+            return cls()
         d = dict(d)  # shallow copy
+
+        # Remap JSON keys → Python field names if __json_map__ is defined
+        jmap = getattr(cls, "__json_map__", {})
+        if jmap:
+            for json_key, py_name in jmap.items():
+                if json_key in d and py_name not in d:
+                    d[py_name] = d.pop(json_key)
+
         kwargs: Dict[str, Any] = {}
         for name, tp in _field_specs(cls):
             if name in d:
                 kwargs[name] = _coerce_value(tp, d[name])
-        return cls(**kwargs)  # type: ignore[call-arg]
+        return cls(**kwargs)
 
     def to_dict(self, *, omit_none: bool = True) -> Dict[str, Any]:
+        rev = self._reverse_json_map()
         out: Dict[str, Any] = {}
         for name, _tp in _field_specs(type(self)):
             v = getattr(self, name, None)
             if omit_none and v is None:
                 continue
-            out[name] = _encode_value(v)
+            # Use the original JSON key name if mapped
+            key = rev.get(name, name)
+            out[key] = _encode_value(v)
         return out
 
     @classmethod

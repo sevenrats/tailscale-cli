@@ -1,27 +1,21 @@
-[tool.poetry]
-name = "tailscale_cli"
-version = "0.3.0"
-description = "Control Tailscale's local socket API"
-authors = ["Antoine POPINEAU <antoine@popineau.eu>"]
-license = "MIT"
-readme = "README.md"
-packages = [{include = "tailscale_cli"}]
-
-[tool.poetry.dependencies]
-python = "^3.10"
-urllib3 = "1.26.16"
-requests = "2.29.0"
-
-[tool.poetry.dev-dependencies]
-black = "^22.3.0"
-pdoc3 = "^0.10.0"
-
-[tool.black]
-line-length = 200
-
-[tool.poetry.scripts]
-playground = "examples.playground:run"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tailscale-cli"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "httpx[http2]>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

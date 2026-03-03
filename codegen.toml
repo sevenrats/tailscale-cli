@@ -1,0 +1,43 @@
+# codegen.toml — configuration for Go → Python model generation.
+#
+# The upstream ref (tag, branch, or commit SHA) determines the Python
+# sub-package name automatically.  For example, ref = "v1.82.0" produces:
+#
+#   tailscale_cli/v1_82_0/ipnstate.py
+#
+# so callers import versioned models like:
+#
+#   from tailscale_cli.v1_82_0.ipnstate import Status, PeerStatus
+#
+# Run:
+#   python -m codegen                  # (re)generate all Python models
+#   python -m codegen --check          # exit 1 if models are stale
+#   python -m codegen --diff           # show what would change
+#   python -m codegen --pin v1.84.0    # update pin to new tag & regenerate
+
+[upstream]
+# GitHub repo (owner/name)
+repo = "tailscale/tailscale"
+
+# Pin to a specific commit SHA or tag.  The codegen fetches the Go source at
+# exactly this ref, guaranteeing reproducible output.
+#
+# The ref is also used as the Python sub-package name under tailscale_cli/.
+# e.g. ref = "v1.82.0"  →  tailscale_cli/v1_82_0/
+ref = "v1.92.5"
+
+# Base package that versioned sub-packages live under
+base_package = "tailscale_cli"
+
+# -------------------------------------------------------------------
+# Each [[source]] stanza maps one Go file to one Python module.
+# The output path is derived automatically:
+#   {base_package}/{ref_as_pkg}/{module_name}.py
+# -------------------------------------------------------------------
+
+[[source]]
+# Path inside the upstream repo
+go_path = "ipn/ipnstate/ipnstate.go"
+
+# Name of the generated Python module (without .py)
+module_name = "ipnstate"
