@@ -1,35 +1,15 @@
-import socket
+"""Helpers for building an httpx client that talks to tailscaled over a UNIX socket."""
 
-SOCK = "%2Frun%2Ftailscale%2Ftailscaled.sock"
+from __future__ import annotations
 
-from urllib3.connection import HTTPConnection
-from urllib3.connectionpool import HTTPConnectionPool
-from requests.adapters import HTTPAdapter
-from requests.exceptions import ConnectionError
-
-from tailscale_cli._util.error import TailscaleException
+import httpx
 
 
-class SockConnection(HTTPConnection):
-    def __init__(self):
-        super().__init__("local-tailscaled.sock")
-
-    def connect(self):
-        try:
-            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.sock.connect("/run/tailscale/tailscaled.sock")
-        except ConnectionError:
-            raise TailscaleException.connection_error()
+# Base URL used as a placeholder — httpx routes the actual traffic over UDS.
+BASE_URL = "http://local-tailscaled.sock"
 
 
-class SockConnectionPool(HTTPConnectionPool):
-    def __init__(self):
-        super().__init__("local-tailscaled.sock")
-
-    def _new_conn(self):
-        return SockConnection()
-
-
-class SockAdapter(HTTPAdapter):
-    def get_connection(self, url, proxies=None):
-        return SockConnectionPool()
+def make_client(socket_path: str) -> httpx.Client:
+    """Return an :class:`httpx.Client` connected via the given UNIX socket."""
+    transport = httpx.HTTPTransport(uds=socket_path)
+    return httpx.Client(base_url=BASE_URL, transport=transport)
