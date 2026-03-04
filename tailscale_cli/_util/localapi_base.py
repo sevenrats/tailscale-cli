@@ -86,12 +86,16 @@ class LocalAPIBase:
     # convenience (always available regardless of version)
     # -------------------------
 
-    def version(self) -> Dict[str, Any]:
-        """Return the Tailscale daemon version information.
+    def daemon_version(self) -> Optional[str]:
+        """Return the running ``tailscaled`` version string.
 
-        Queries ``GET /localapi/v0/version`` and returns the JSON response
-        which typically includes keys such as ``majorMinorPatch``, ``short``,
-        ``long``, ``gitCommit``, and ``cap``.
+        The daemon sets a ``Tailscale-Version`` header on every HTTP
+        response (see ``localapi.go``'s ``ServeHTTP``).  We issue a
+        lightweight ``GET /localapi/v0/status?peers=false`` and read
+        that header — the same approach the official Go CLI uses.
+
+        Returns the version string (e.g. ``"1.94.2"``) or ``None``
+        if the header is missing.
         """
-        resp = self._request("GET", "version")
-        return resp.json()
+        resp = self._request("GET", "status", params={"peers": "false"})
+        return resp.headers.get("Tailscale-Version")

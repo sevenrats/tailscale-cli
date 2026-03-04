@@ -95,21 +95,25 @@ def _load_versioned_api(pkg_name: str) -> Optional[Type[LocalAPIBase]]:
 def _query_daemon_version(socket_path: str) -> Optional[str]:
     """Ask the running tailscaled for its version.
 
-    Returns a semver-style ref string (e.g. ``"v1.94.2"``) or ``None`` if the
-    response is missing the expected version field.
+    The daemon sets a ``Tailscale-Version`` header on *every* HTTP
+    response, so we issue a lightweight ``GET /localapi/v0/status``
+    (without peers) and read that header — exactly like the official
+    Go ``tailscale`` CLI does.
+
+    Returns a semver-style ref string (e.g. ``"v1.94.2"``) or ``None``
+    if the header is absent.
 
     Raises:
         TailscaleException: If the daemon is unreachable.
     """
     try:
         probe = LocalAPIBase(socket_path=socket_path)
-        info = probe.version()
-        mmp = info.get("majorMinorPatch") or info.get("short")
-        if mmp:
-            mmp = mmp.strip()
-            if not mmp.startswith("v"):
-                mmp = "v" + mmp
-            return mmp
+        ver = probe.daemon_version()
+        if ver:
+            ver = ver.strip()
+            if not ver.startswith("v"):
+                ver = "v" + ver
+            return ver
     except Exception as exc:
         raise TailscaleException.connection_error() from exc
     return None

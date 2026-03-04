@@ -125,48 +125,42 @@ class TestLoadVersionedApi:
 
 
 class TestQueryDaemonVersion:
-    """_query_daemon_version talks to the socket via LocalAPIBase.version()."""
+    """_query_daemon_version reads the Tailscale-Version response header."""
 
     @patch("tailscale_cli.api.LocalAPIBase")
-    def test_returns_version_from_major_minor_patch(self, MockBase):
+    def test_returns_version_from_header(self, MockBase):
         instance = MockBase.return_value
-        instance.version.return_value = {"majorMinorPatch": "1.94.2", "short": "1.94.2"}
+        instance.daemon_version.return_value = "1.94.2"
         assert _query_daemon_version("/fake.sock") == "v1.94.2"
 
     @patch("tailscale_cli.api.LocalAPIBase")
     def test_prepends_v_prefix(self, MockBase):
         instance = MockBase.return_value
-        instance.version.return_value = {"majorMinorPatch": "1.94.2"}
+        instance.daemon_version.return_value = "1.94.2"
         assert _query_daemon_version("/fake.sock") == "v1.94.2"
 
     @patch("tailscale_cli.api.LocalAPIBase")
     def test_preserves_existing_v_prefix(self, MockBase):
         instance = MockBase.return_value
-        instance.version.return_value = {"majorMinorPatch": "v1.94.2"}
+        instance.daemon_version.return_value = "v1.94.2"
         assert _query_daemon_version("/fake.sock") == "v1.94.2"
 
     @patch("tailscale_cli.api.LocalAPIBase")
-    def test_falls_back_to_short(self, MockBase):
+    def test_returns_none_when_header_missing(self, MockBase):
         instance = MockBase.return_value
-        instance.version.return_value = {"short": "1.94.2"}
-        assert _query_daemon_version("/fake.sock") == "v1.94.2"
-
-    @patch("tailscale_cli.api.LocalAPIBase")
-    def test_returns_none_on_missing_fields(self, MockBase):
-        instance = MockBase.return_value
-        instance.version.return_value = {"long": "some-long-hash"}
+        instance.daemon_version.return_value = None
         assert _query_daemon_version("/fake.sock") is None
 
     @patch("tailscale_cli.api.LocalAPIBase")
-    def test_returns_none_on_empty_response(self, MockBase):
+    def test_returns_none_on_empty_string(self, MockBase):
         instance = MockBase.return_value
-        instance.version.return_value = {}
+        instance.daemon_version.return_value = ""
         assert _query_daemon_version("/fake.sock") is None
 
     @patch("tailscale_cli.api.LocalAPIBase")
     def test_raises_on_connection_error(self, MockBase):
         instance = MockBase.return_value
-        instance.version.side_effect = ConnectionError("no socket")
+        instance.daemon_version.side_effect = ConnectionError("no socket")
         with pytest.raises(TailscaleException) as exc_info:
             _query_daemon_version("/fake.sock")
         assert exc_info.value.error == TailscaleError.CONNECTION_ERROR
@@ -174,7 +168,7 @@ class TestQueryDaemonVersion:
     @patch("tailscale_cli.api.LocalAPIBase")
     def test_raises_on_any_exception(self, MockBase):
         instance = MockBase.return_value
-        instance.version.side_effect = RuntimeError("boom")
+        instance.daemon_version.side_effect = RuntimeError("boom")
         with pytest.raises(TailscaleException) as exc_info:
             _query_daemon_version("/fake.sock")
         assert exc_info.value.error == TailscaleError.CONNECTION_ERROR
@@ -182,7 +176,7 @@ class TestQueryDaemonVersion:
     @patch("tailscale_cli.api.LocalAPIBase")
     def test_strips_whitespace_from_version(self, MockBase):
         instance = MockBase.return_value
-        instance.version.return_value = {"majorMinorPatch": "  1.94.2  "}
+        instance.daemon_version.return_value = "  1.94.2  "
         assert _query_daemon_version("/fake.sock") == "v1.94.2"
 
 
@@ -284,11 +278,13 @@ def _make_response(
     json_data: Optional[Dict[str, Any]] = None,
     text: str = "",
     content: Optional[bytes] = None,
+    headers: Optional[Dict[str, str]] = None,
 ) -> MagicMock:
     """Build a mock httpx response."""
     resp = MagicMock()
     resp.status_code = status_code
     resp.text = text
+    resp.headers = headers or {}
     if json_data is not None:
         resp.json.return_value = json_data
     if content is not None:
@@ -303,23 +299,24 @@ class TestLocalAPIBase:
         assert base._url("/status") == "/localapi/v0/status"
         assert base._url("localapi/v0/status") == "/localapi/v0/status"
 
-    def test_version_returns_json(self):
+    def test_daemon_version_reads_header(self):
         base, mock_client = _mock_base()
         mock_client.request.return_value = _make_response(
-            json_data={
-                "majorMinorPatch": "1.94.2",
-                "short": "1.94.2",
-                "long": "1.94.2-t1abc...",
-                "gitCommit": "2de4d317a8c2",
-                "cap": 106,
-            }
+            headers={"Tailscale-Version": "1.94.2"},
         )
 
-        result = base.version()
+        result = base.daemon_version()
 
         mock_client.request.assert_called_once()
-        assert result["majorMinorPatch"] == "1.94.2"
-        assert result["cap"] == 106
+        assert result == "1.94.2"
+
+    def test_daemon_version_returns_none_when_header_missing(self):
+        base, mock_client = _mock_base()
+        mock_client.request.return_value = _make_response()
+
+        result = base.daemon_version()
+
+        assert result is None
 
     def test_request_raises_on_4xx(self):
         base, mock_client = _mock_base()
