@@ -86,6 +86,74 @@ class LocalAPIBase:
     # convenience (always available regardless of version)
     # -------------------------
 
+    def login(
+        self,
+        *,
+        auth_key: Optional[str] = None,
+        control_url: Optional[str] = None,
+        timeout: float = 30.0,
+    ) -> None:
+        """Log in to Tailscale.
+
+        When *auth_key* is supplied the daemon authenticates headlessly
+        using that key (``POST /localapi/v0/start`` with an ``AuthKey``
+        body).  Without an auth key the daemon starts an interactive
+        browser-based login flow (``POST /localapi/v0/login-interactive``).
+
+        Use *control_url* to point the daemon at a custom control server
+        (e.g. Headscale) before logging in.
+
+        Args:
+            auth_key:    A Tailscale auth key (``tskey-…``).  If provided
+                         the login is non-interactive.
+            control_url: Optional control-plane URL.  When set together
+                         with *auth_key* it is sent as ``UpdatePrefs``
+                         inside the ``start`` body.  When set without an
+                         auth key the prefs are patched first via
+                         ``PATCH /localapi/v0/prefs``.
+            timeout:     HTTP request timeout in seconds.
+
+        Example::
+
+            # Headless auth-key login
+            api.login(auth_key="tskey-auth-abc123")
+
+            # Interactive browser login
+            api.login()
+
+            # Login to a Headscale instance with an auth key
+            api.login(
+                auth_key="tskey-auth-abc123",
+                control_url="https://headscale.example.com",
+            )
+        """
+        if auth_key is not None:
+            body: Dict[str, Any] = {"AuthKey": auth_key}
+            if control_url is not None:
+                body["UpdatePrefs"] = {"ControlURL": control_url}
+            self._request("POST", "start", json_body=body, timeout=timeout)
+        else:
+            if control_url is not None:
+                self._request(
+                    "PATCH",
+                    "prefs",
+                    json_body={
+                        "ControlURL": control_url,
+                        "ControlURLSet": True,
+                    },
+                    timeout=timeout,
+                )
+            self._request("POST", "login-interactive", timeout=timeout)
+
+    def logout(self, *, timeout: float = 30.0) -> None:
+        """Log out of Tailscale.
+
+        Expires the current node key and disconnects from the network.
+
+        POST /localapi/v0/logout
+        """
+        self._request("POST", "logout", timeout=timeout)
+
     def daemon_version(self) -> Optional[str]:
         """Return the running ``tailscaled`` version string.
 
