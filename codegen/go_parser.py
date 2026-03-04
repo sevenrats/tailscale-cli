@@ -137,31 +137,76 @@ def _parse_struct_body(body: str) -> List[GoField]:
         if not line.strip():
             continue
 
-        # Now line should be:  FieldName  TypeExpr
+        # Handle Go multi-name field declarations like:
+        #   RBytes, TxBytes int64
+        # Split on commas to extract individual names, then parse the
+        # type from the last segment.
         parts = line.split(None, 1)
         if len(parts) < 2:
             # Embedded (anonymous) field — skip for now
             continue
 
-        field_name = parts[0]
-        if not field_name[0].isupper():
-            # unexported — skip
-            continue
+        # Detect multi-name declarations: "Name1, Name2, ... Type"
+        # by checking whether the first token ends with a comma.
+        raw_names_and_type = line
+        name_parts: List[str] = []
+        remainder = raw_names_and_type
 
-        type_expr = parts[1].strip()
-        go_type = parse_type_expr(type_expr)
+        # Greedily pull off "Name," tokens from the front
+        while True:
+            tok_match = re.match(r"(\w+)\s*,\s*(.*)", remainder)
+            if tok_match:
+                name_parts.append(tok_match.group(1))
+                remainder = tok_match.group(2)
+            else:
+                break
 
+        if name_parts:
+            # remainder should now be "LastName TypeExpr" or just "TypeExpr"
+            last_parts = remainder.split(None, 1)
+            if len(last_parts) >= 2:
+                name_parts.append(last_parts[0])
+                type_expr_str = last_parts[1].strip()
+            elif len(last_parts) == 1:
+                # Could be "Type" if the comma-names covered all names
+                type_expr_str = last_parts[0].strip()
+            else:
+                continue
+        else:
+            # Single field: "FieldName TypeExpr"
+            first_parts = line.split(None, 1)
+            if len(first_parts) < 2:
+                continue
+            name_parts = [first_parts[0]]
+            type_expr_str = first_parts[1].strip()
+
+        go_type = parse_type_expr(type_expr_str)
         json_name, omit = _parse_json_tag(tag)
 
-        fields.append(
-            GoField(
-                name=field_name,
-                go_type=go_type,
-                json_name=json_name,
-                json_omitempty=omit,
-                comment=comment,
+        for i, field_name in enumerate(name_parts):
+            # Strip any trailing commas from field names (defensive)
+            field_name = field_name.rstrip(",")
+
+            if not field_name or not field_name[0].isupper():
+                # unexported — skip
+                continue
+
+            # For multi-name declarations, only the first field can
+            # use the json tag; others get their Go name as json key.
+            if i == 0:
+                fn_json = json_name
+            else:
+                fn_json = field_name
+
+            fields.append(
+                GoField(
+                    name=field_name,
+                    go_type=go_type,
+                    json_name=fn_json,
+                    json_omitempty=omit,
+                    comment=comment,
+                )
             )
-        )
 
     return fields
 
@@ -212,7 +257,7 @@ def _find_matching_paren(src: str, open_pos: int) -> int:
 
 def _collect_preceding_comment(src: str, pos: int) -> str:
     """Gather consecutive // comment lines immediately above *pos*."""
-    lines = src[:pos].rstrip().rsplit("\n", 10)
+    lines = src[:pos].rstrip().rsplit("\n", 50)
     comments: list[str] = []
     for raw in reversed(lines):
         stripped = raw.strip()

@@ -211,7 +211,8 @@ def generate_module(
     # --- Enums ---
     for cg in go_file.const_groups:
         if cg.comment:
-            lines.append(f"# {cg.comment}")
+            for cl in cg.comment.splitlines():
+                lines.append(f"# {cl}")
         base_cls = "IntEnum" if cg.base_type == "int" else "str, Enum"
         lines.append(f"class {cg.type_name}({base_cls}):")
         for cv in cg.values:
@@ -281,13 +282,20 @@ def generate_module(
         lines.append("")
 
     # --- Type aliases ---
+    # Skip aliases already emitted as opaque NewTypes or enum classes.
+    _emitted_newtypes = {go_name.rsplit(".", 1)[-1] for go_name in used_newtypes}
     for alias in go_file.type_aliases:
         short = alias.name
+        if short in _emitted_newtypes:
+            continue
+        if short in local_enums:
+            continue  # already emitted as an IntEnum/Enum class
         py_underlying = _py_type_for(
             alias.underlying, local_structs, local_enums, local_aliases
         )
         if alias.comment:
-            lines.append(f"# {alias.comment}")
+            for cl in alias.comment.splitlines():
+                lines.append(f"# {cl}")
         # If the underlying type is a primitive, use NewType for type-safety
         if py_underlying in ("str", "int", "float", "bool"):
             lines.append(f'{short} = NewType("{short}", {py_underlying})')

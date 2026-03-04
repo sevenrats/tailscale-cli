@@ -59,6 +59,13 @@ OPAQUE_NEWTYPES: Dict[str, str] = {
     "netip.Addr": "str",
     "netip.Prefix": "str",
     "netip.AddrPort": "str",
+    # ipn.* — unqualified same-package types referenced across files
+    "StateKey": "str",
+    "WindowsUserID": "str",
+    "ProfileID": "str",
+    "ExitNodeExpression": "str",
+    # persist.*
+    "persist.PersistView": "str",
 }
 
 # External Go types that we keep as opaque ``Dict[str, Any]`` because they are
@@ -71,6 +78,20 @@ OPAQUE_DICTS: Set[str] = {
     "tailcfg.NetInfo",
     "tailcfg.DERPRegion",
     "views.Slice",
+    # persist / control types
+    "persist.Persist",
+    "persist.PersistView",
+    "controlclient.NetmapUpdater",
+    "wgcfg.Config",
+    "filter.Match",
+    "router.Config",
+    "dns.OSConfig",
+    "dns.Config",
+    "tailcfg.Debug",
+    "url.URL",
+    # ipn cross-file struct refs (not yet codegen'd together)
+    "ServeConfig",
+    "ConfigVAlpha",
 }
 
 # ---------------------------------------------------------------------------

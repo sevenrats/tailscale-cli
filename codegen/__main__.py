@@ -21,6 +21,8 @@ from typing import Any, Dict, List
 from .fetch import fetch_go_source, fetch_release_tags, resolve_commit_sha
 from .go_parser import parse_go_file
 from .generator import generate_module
+from .localapi_parser import parse_localapi
+from .localapi_generator import generate_localapi_module
 from .type_map import ref_to_package_name
 
 try:
@@ -96,9 +98,14 @@ def _generate_version_init(
         '"""',
         "",
     ]
-    # Re-export all public names from each module for convenience
+    # Re-export all public names from each module for convenience.
+    # For localapi, only export the LocalAPI class (not * which would
+    # clobber names from model modules).
     for mod in sorted(module_names):
-        lines.append(f"from .{mod} import *  # noqa: F401,F403")
+        if mod == "localapi":
+            lines.append(f"from .{mod} import LocalAPI  # noqa: F401")
+        else:
+            lines.append(f"from .{mod} import *  # noqa: F401,F403")
     lines.append("")
     return "\n".join(lines)
 
@@ -139,6 +146,38 @@ def _generate_one(
         upstream_url=url,
         upstream_commit=commit_sha,
         serde_import=serde_import,
+    )
+    return code
+
+
+def _generate_localapi(
+    localapi_cfg: Dict[str, Any],
+    upstream_repo: str,
+    upstream_ref: str,
+    commit_sha: str,
+    base_package: str,
+) -> str | None:
+    """Fetch + parse + generate the versioned localapi module. Returns code or None."""
+    go_path: str = localapi_cfg["go_path"]
+    url = f"https://github.com/{upstream_repo}/blob/{commit_sha}/{go_path}"
+
+    print(f"  Fetching {go_path} @ {commit_sha[:12]}…")
+    try:
+        go_src = fetch_go_source(upstream_repo, commit_sha, go_path)
+    except Exception as e:
+        print(f"  ⚠ Could not fetch {go_path}: {e}")
+        return None
+
+    print("  Parsing LocalAPI surface…")
+    api_file = parse_localapi(go_src)
+    print(f"    {len(api_file.endpoints)} endpoints")
+
+    print("  Generating localapi.py…")
+    code = generate_localapi_module(
+        api_file,
+        upstream_url=url,
+        upstream_commit=commit_sha,
+        base_import=f"{base_package}._util.localapi_base",
     )
     return code
 
@@ -249,6 +288,35 @@ def run(argv: List[str] | None = None) -> int:
             py_path.parent.mkdir(parents=True, exist_ok=True)
             py_path.write_text(code)
             print(f"  ✓ Wrote {py_rel}")
+
+    # --- Generate localapi.py for the version package ---
+    localapi_cfg = cfg.get("localapi")
+    if localapi_cfg:
+        la_module_name = localapi_cfg["module_name"]
+        module_names.append(la_module_name)
+        la_code = _generate_localapi(
+            localapi_cfg, upstream_repo, upstream_ref, commit_sha,
+            base_package,
+        )
+        if la_code:
+            la_rel = f"{base_package}/{pkg_name}/{la_module_name}.py"
+            la_path = REPO_ROOT / la_rel
+
+            if args.dry_run:
+                print(f"\n# ═══ {la_rel} ═══")
+                print(la_code)
+            elif args.check or args.diff:
+                existing_la = la_path.read_text() if la_path.exists() else ""
+                if _content_changed(existing_la, la_code):
+                    stale = True
+                    if args.diff:
+                        _print_diff(existing_la, la_code, la_rel)
+                    elif args.check:
+                        print(f"  ✗ {la_rel} is stale")
+            else:
+                la_path.parent.mkdir(parents=True, exist_ok=True)
+                la_path.write_text(la_code)
+                print(f"  ✓ Wrote {la_rel}")
 
     # --- Generate __init__.py for the version package ---
     init_code = _generate_version_init(
@@ -394,6 +462,25 @@ def _sync_tags(cfg: Dict[str, Any], args: argparse.Namespace) -> int:
 
         if not tag_ok:
             continue
+
+        # Generate localapi.py for this version
+        localapi_cfg = cfg.get("localapi")
+        if localapi_cfg and tag_ok:
+            la_module_name = localapi_cfg["module_name"]
+            module_names.append(la_module_name)
+            la_code = _generate_localapi(
+                localapi_cfg, upstream_repo, tag, commit_sha, base_package,
+            )
+            if la_code:
+                la_rel = f"{base_package}/{pkg_name}/{la_module_name}.py"
+                la_path = REPO_ROOT / la_rel
+                if args.dry_run:
+                    print(f"\n# ═══ {la_rel} ═══")
+                    print(la_code)
+                else:
+                    la_path.parent.mkdir(parents=True, exist_ok=True)
+                    la_path.write_text(la_code)
+                    print(f"  ✓ Wrote {la_rel}")
 
         # Write __init__.py for this version
         init_code = _generate_version_init(

@@ -3,7 +3,7 @@ Auto-generated from upstream Go source — DO NOT EDIT.
 
 Source : https://github.com/tailscale/tailscale/blob/d885b34776cd2e96f1f368a4d31729e37ff8b59b/ipn/ipnstate/ipnstate.go
 Commit : d885b34776cd2e96f1f368a4d31729e37ff8b59b
-Generated: 2026-03-03T21:09:46Z
+Generated: 2026-03-04T11:27:12Z
 """
 
 from __future__ import annotations
@@ -204,14 +204,16 @@ class ExitNodeStatus(SerdeMixin):
 @dataclass
 class PeerStatusLite(SerdeMixin):
     node_key: NodePublic = NodePublic("")  # json="NodeKey"
-    tx_bytes,: Dict[str, Any] = field(default_factory=dict)  # json="TxBytes,"
+    tx_bytes: int = 0  # json="TxBytes"
+    rx_bytes: int = 0  # json="RxBytes"
     last_handshake: datetime = None  # json="LastHandshake"
 
     # JSON key name → Python field name
     __json_map__: ClassVar[Dict[str, str]] = {
         "LastHandshake": "last_handshake",
         "NodeKey": "node_key",
-        "TxBytes,": "tx_bytes,",
+        "RxBytes": "rx_bytes",
+        "TxBytes": "tx_bytes",
     }
 
 
@@ -376,8 +378,4 @@ class UpdateProgress(SerdeMixin):
     message: str = ""
     version: str = ""
 
-
-TaildropTargetStatus = NewType("TaildropTargetStatus", int)
-
-SelfUpdateStatus = NewType("SelfUpdateStatus", str)
 
