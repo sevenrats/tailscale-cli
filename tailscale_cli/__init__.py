@@ -21,14 +21,22 @@ from .api import TailscaleCLI as TailscaleCLI
 # ---------------------------------------------------------------------------
 
 from .v1_94_2.ipnstate import (  # noqa: E402 — re-exports for convenience
+    Addr as Addr,
     DebugDERPRegionReport as DebugDERPRegionReport,
     ExitNodeStatus as ExitNodeStatus,
     NetworkLockStatus as NetworkLockStatus,
     NetworkLockUpdate as NetworkLockUpdate,
+    NLPublic as NLPublic,
+    NodeCapability as NodeCapability,
+    NodeID as NodeID,
+    NodeKeySignature as NodeKeySignature,
+    NodePublic as NodePublic,
     PeerStatus as PeerStatus,
     PeerStatusLite as PeerStatusLite,
     PingResult as PingResult,
+    Prefix as Prefix,
     SelfUpdateStatus as SelfUpdateStatus,
+    StableNodeID as StableNodeID,
     Status as Status,
     StatusBuilder as StatusBuilder,
     TailnetStatus as TailnetStatus,
@@ -36,4 +44,5 @@ from .v1_94_2.ipnstate import (  # noqa: E402 — re-exports for convenience
     TKAKey as TKAKey,
     TKAPeer as TKAPeer,
     UpdateProgress as UpdateProgress,
+    UserID as UserID,
 )
