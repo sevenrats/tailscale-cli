@@ -6,6 +6,7 @@ class TailscaleError(Enum):
     CONNECTION_ERROR = 1
     UNAUTHORIZED = 2
     HTTP_ERROR = 3
+    ACCESS_DENIED = 4
 
 
 class TailscaleException(Exception):
@@ -29,10 +30,17 @@ class TailscaleException(Exception):
                 TailscaleError.UNAUTHORIZED,
                 "unauthorized API access, try running as root",
             )
+        elif code == 403:
+            return TailscaleException(
+                TailscaleError.ACCESS_DENIED,
+                f"access denied (HTTP 403): {message.strip() or 'insufficient permissions'}. "
+                "This endpoint requires elevated privileges — try running as root or "
+                "ensuring the connecting process has the required tailscaled permission level.",
+            )
         else:
             return TailscaleException(
                 TailscaleError.HTTP_ERROR,
-                f"got unexpected HTTP status code: ${code}: ${message}",
+                f"got unexpected HTTP status code: {code}: {message}",
             )
 
     @staticmethod

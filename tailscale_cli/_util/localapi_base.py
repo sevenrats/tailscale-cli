@@ -154,6 +154,187 @@ class LocalAPIBase:
         """
         self._request("POST", "logout", timeout=timeout)
 
+    # ------------------------------------------------------------------
+    # Stubs for endpoints present in every generated version.
+    #
+    # These raise ``NotImplementedError`` at the base level so that
+    # callers always get IDE autocomplete / type-checking.  The
+    # generated ``LocalAPI`` subclasses override every one of these
+    # with proper implementations.
+    # ------------------------------------------------------------------
+
+    def profiles(self, *, timeout: float = 30.0) -> Any:
+        """List or manage Tailscale account profiles."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def profiles_get(self, item_id: str, *, timeout: float = 30.0) -> Any:
+        """Get a single profile by ID."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def profiles_switch(self, item_id: str, *, timeout: float = 30.0) -> None:
+        """Switch to a profile."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def profiles_delete(self, item_id: str, *, timeout: float = 30.0) -> None:
+        """Delete a profile."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def check_prefs(self, *, json_body: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> Any:
+        """Validate a prefs change without applying it."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def derpmap(self, timeout: float = 30.0) -> Any:
+        """Return the current DERP map."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def goroutines(self, timeout: float = 30.0) -> str:
+        """Return a goroutine dump from tailscaled."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def login_interactive(self, timeout: float = 30.0) -> None:
+        """Start an interactive (browser-based) login flow."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def ping(self, ip_or_host: str, *, ping_type: str = "disco", size: int = 0, timeout: float = 30.0) -> Any:
+        """Ping a Tailscale node at the Tailscale layer."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def prefs(self, *, json_body: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> Any:
+        """Get or update daemon preferences."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def reload_config(self, timeout: float = 30.0) -> None:
+        """Reload configuration from disk."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def reset_auth(self, timeout: float = 30.0) -> None:
+        """Reset authentication state, forcing re-login."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def set_expiry_sooner(self, *, expiry: Optional[str] = None, timeout: float = 30.0) -> None:
+        """Set the key expiry to a sooner time."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def shutdown(self) -> None:
+        """Shut down the tailscaled daemon."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def start(self, *, json_body: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> None:
+        """Start the Tailscale backend with the given options."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def status(self, *, peers: Optional[str] = None, timeout: float = 30.0) -> Any:
+        """Show state of tailscaled and its connections."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def whois(self, addr: str, timeout: float = 30.0) -> Any:
+        """Look up the node/user associated with a Tailscale IP."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def appc_route_info(self, timeout: float = 30.0) -> Any:
+        """Get app connector route information."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def check_ip_forwarding(self, timeout: float = 30.0) -> Any:
+        """Check whether IP forwarding is enabled on this host."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def check_udp_gro_forwarding(self, timeout: float = 30.0) -> Any:
+        """Check whether UDP GRO forwarding is supported."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def set_udp_gro_forwarding(self, timeout: float = 30.0) -> None:
+        """Enable or disable UDP GRO forwarding."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def check_reverse_path_filtering(self, timeout: float = 30.0) -> Any:
+        """Check reverse-path filtering status."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def upload_client_metrics(self, *, json_body: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> None:
+        """Upload client metrics to the control server."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def update_check(self, timeout: float = 30.0) -> Any:
+        """Check for available Tailscale updates."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def suggest_exit_node(self, timeout: float = 30.0) -> Any:
+        """Suggest an exit node based on current conditions."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def set_use_exit_node_enabled(self, *, enabled: Optional[str] = None, timeout: float = 30.0) -> None:
+        """Enable or disable using the configured exit node."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def set_dns(self, *, name: Optional[str] = None, value: Optional[str] = None, timeout: float = 30.0) -> None:
+        """Set a DNS record for an ACME challenge."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def bugreport(self, *, note: Optional[str] = None, diagnose: Optional[str] = None, record: Optional[str] = None, timeout: float = 30.0) -> str:
+        """Generate a bug report identifier."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def pprof(self) -> None:
+        """Streaming: pprof."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def watch_ipn_bus(self) -> None:
+        """Streaming: watch-ipn-bus."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def dns_osconfig(self, timeout: float = 30.0) -> Any:
+        """Return the OS DNS configuration."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def dns_query(self, timeout: float = 30.0) -> Any:
+        """Perform a DNS query through the Tailscale DNS forwarder."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def usermetrics(self, timeout: float = 30.0) -> None:
+        """Upload user-facing metrics."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def query_feature(self, *, feature: Optional[str] = None, timeout: float = 30.0) -> Any:
+        """Query whether a feature is available."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def dial(self) -> None:
+        """Streaming: dial."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def metrics(self, timeout: float = 30.0) -> str:
+        """Return Prometheus-style metrics from tailscaled."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def disconnect_control(self, timeout: float = 30.0) -> None:
+        """Disconnect from the control server (debug)."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def id_token(self, aud: str, timeout: float = 30.0) -> Any:
+        """Request an OIDC ID token for the given audience."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def set_device_attrs(self, *, json_body: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> None:
+        """Set device attributes (alpha/experimental)."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def handle_push_message(self, *, json_body: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> None:
+        """Handle an incoming push notification message."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def set_push_device_token(self, *, json_body: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> None:
+        """Register a push notification device token."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def set_gui_visible(self, *, json_body: Optional[Dict[str, Any]] = None, timeout: float = 30.0) -> None:
+        """Tell tailscaled whether a GUI is visible."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
+    def logtap(self) -> None:
+        """Streaming: logtap."""
+        raise NotImplementedError("use a versioned LocalAPI")
+
     def daemon_version(self) -> Optional[str]:
         """Return the running ``tailscaled`` version string.
 
