@@ -7,6 +7,7 @@ The generator imports this and delegates all type-resolution here.
 
 from __future__ import annotations
 
+import re
 from typing import Dict, Set
 
 # ---------------------------------------------------------------------------
@@ -59,6 +60,13 @@ OPAQUE_NEWTYPES: Dict[str, str] = {
     "netip.Addr": "str",
     "netip.Prefix": "str",
     "netip.AddrPort": "str",
+    # ipn.* — unqualified same-package types referenced across files
+    "StateKey": "str",
+    "WindowsUserID": "str",
+    "ProfileID": "str",
+    "ExitNodeExpression": "str",
+    # persist.*
+    "persist.PersistView": "str",
 }
 
 # External Go types that we keep as opaque ``Dict[str, Any]`` because they are
@@ -71,6 +79,20 @@ OPAQUE_DICTS: Set[str] = {
     "tailcfg.NetInfo",
     "tailcfg.DERPRegion",
     "views.Slice",
+    # persist / control types
+    "persist.Persist",
+    "persist.PersistView",
+    "controlclient.NetmapUpdater",
+    "wgcfg.Config",
+    "filter.Match",
+    "router.Config",
+    "dns.OSConfig",
+    "dns.Config",
+    "tailcfg.Debug",
+    "url.URL",
+    # ipn cross-file struct refs (not yet codegen'd together)
+    "ServeConfig",
+    "ConfigVAlpha",
 }
 
 # ---------------------------------------------------------------------------
@@ -87,8 +109,6 @@ def ref_to_package_name(ref: str) -> str:
         main         → main
         abc123…      → abc123… (first 12 hex chars)
     """
-    import re
-
     name = ref.strip()
     # If it looks like a full SHA, truncate to 12 chars
     if re.fullmatch(r"[0-9a-f]{40}", name):
@@ -111,13 +131,27 @@ def ref_to_package_name(ref: str) -> str:
 def go_name_to_snake(name: str) -> str:
     """Convert GoCamelCase to python_snake_case.
 
-    Handles common acronyms (IP, DNS, ID, URL, SSH, TLS, API, OS, …).
-    """
-    import re
+    Treats any run of two or more adjacent uppercase letters as a single
+    acronym (per Go's identifier conventions: acronyms in Go identifiers
+    are written all-uppercase, e.g. ``URL``, ``ID``, ``HTTP``, ``IP``).
 
-    # Insert underscore between: UPPER run followed by Upper+lower
-    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
-    # Insert underscore between: lower/digit followed by Upper
+    Examples:
+        TailscaleIPs    -> tailscale_ips
+        AllowedIPs      -> allowed_ips
+        UserIDs         -> user_ids
+        HTTPSConnection -> https_connection
+        DNSServer       -> dns_server
+        IPv4            -> ipv4
+        HostName        -> host_name
+        Tools           -> tools
+    """
+    # Acronym → Word boundary: a run of 2+ uppercase letters followed by a
+    # Word (one uppercase + 2 or more lowercase letters). Insert "_" between
+    # the acronym and the Word, never inside the acronym. The greedy match
+    # plus lookahead lets the regex engine peel off exactly one capital
+    # for the next word's leading letter.
+    s = re.sub(r"([A-Z]+)(?=[A-Z][a-z]{2,})", r"\1_", name)
+    # camelCase boundary: lower/digit → upper.
     s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
     return s.lower()
 

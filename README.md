@@ -7,14 +7,13 @@ It is not a Tailscale SaaS API library.
 ## Usage
 
 ```python
-ts = TailscaleAPI.v0()
+from tailscale_cli import TailscaleCLI
 
-ts.connect()
-ts.set_exit_node("hostname")
+# Auto-detect the daemon version and load matching models:
+api = TailscaleCLI.connect()
+status = api.status()   # returns a typed model if models exist
 
-peer1 = ts.peer("hostname")
-print(peer1.ip_address)
-
-for peer in ts.peers():
-  print(peer.ip_address)
+# Or pin to a specific model version explicitly:
+api = TailscaleCLI.connect("v1.94.2")
+status = api.status()   # → tailscale_cli.v1_94_2.ipnstate.Status
 ```

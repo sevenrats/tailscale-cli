@@ -3,55 +3,43 @@ Main entrypoint for Tailscale's local API.
 
 This is the class that should be used as a starting point to access a handle to
 use this library.  By default the factory queries the running daemon for its
-version and loads the matching generated models automatically.
+version and loads the matching generated ``LocalAPI`` automatically.
 
 Example usage::
 
     from tailscale_cli import TailscaleCLI
 
-    # Auto-detect the daemon version and load matching models:
+    # Auto-detect the daemon version and load matching LocalAPI:
     api = TailscaleCLI.connect()
-    status = api.status()   # returns a typed model if models exist
+    status = api.status()   # returns a typed ipnstate.Status
 
-    # Or pin to a specific model version explicitly:
+    # Or pin to a specific version explicitly:
     api = TailscaleCLI.connect("v1.94.2")
-    status = api.status()   # → tailscale_cli.v1_94_2.ipnstate.Status
+    status = api.status()
 """
 
 from __future__ import annotations
 
 import importlib
 import logging
-from typing import Optional
+import re
+from pathlib import Path
+from typing import Optional, Tuple, Type
 
-from tailscale_cli.v0.api import LocalAPI
+from tailscale_cli._util.error import TailscaleException
+from tailscale_cli._util.localapi_base import LocalAPIBase
 
 log = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-# Lazy helper: read the pinned ref from codegen.toml without pulling in tomllib
-# at import time.  Falls back to None if the config isn't found.
-def _default_ref() -> Optional[str]:
-    try:
-        from pathlib import Path
-
-        cfg_path = Path(__file__).resolve().parent.parent / "codegen.toml"
-        if not cfg_path.exists():
-            return None
-        for line in cfg_path.read_text().splitlines():
-            stripped = line.strip()
-            if stripped.startswith("ref"):
-                # ref = "v1.82.0"
-                return stripped.split("=", 1)[1].strip().strip('"').strip("'")
-    except Exception:
-        pass
-    return None
+_VERSION_RE = re.compile(r"^v(\d+)_(\d+)_(\d+)$")
 
 
 def _ref_to_package_name(ref: str) -> str:
-    """Inline copy of codegen.type_map.ref_to_package_name (avoid import cycle)."""
-    import re
-
+    """Convert a git ref like ``v1.94.2`` to a Python package name ``v1_94_2``."""
     name = ref.strip()
     if re.fullmatch(r"[0-9a-f]{40}", name):
         name = name[:12]
@@ -62,25 +50,78 @@ def _ref_to_package_name(ref: str) -> str:
     return name.lower()
 
 
-def _query_daemon_version(api: LocalAPI) -> Optional[str]:
+def _parse_version_tuple(pkg_name: str) -> Optional[Tuple[int, ...]]:
+    """Extract ``(major, minor, patch)`` from a package dir name like ``v1_94_2``."""
+    m = _VERSION_RE.match(pkg_name)
+    if not m:
+        return None
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+
+
+def _find_latest_version_package() -> Optional[str]:
+    """Scan ``tailscale_cli/v*`` directories and return the newest package name.
+
+    Only considers directories that contain a ``localapi.py``.
+    """
+    pkg_root = Path(__file__).resolve().parent
+    best: Optional[Tuple[Tuple[int, ...], str]] = None
+
+    for d in pkg_root.iterdir():
+        if not d.is_dir() or not d.name.startswith("v"):
+            continue
+        if not (d / "localapi.py").exists():
+            continue
+        ver = _parse_version_tuple(d.name)
+        if ver is None:
+            continue
+        if best is None or ver > best[0]:
+            best = (ver, d.name)
+
+    return best[1] if best else None
+
+
+def _load_versioned_api(pkg_name: str) -> Optional[Type[LocalAPIBase]]:
+    """Try to import ``tailscale_cli.<pkg_name>.localapi.LocalAPI``."""
+    try:
+        mod = importlib.import_module(f"tailscale_cli.{pkg_name}.localapi")
+        cls = getattr(mod, "LocalAPI", None)
+        if cls is not None and issubclass(cls, LocalAPIBase):
+            return cls
+    except (ModuleNotFoundError, AttributeError):
+        pass
+    return None
+
+
+def _query_daemon_version(socket_path: str) -> Optional[str]:
     """Ask the running tailscaled for its version.
 
-    Returns a semver-style ref string (e.g. ``"v1.94.2"``) or ``None`` if the
-    daemon is unreachable or the response is missing the expected field.
+    The daemon sets a ``Tailscale-Version`` header on *every* HTTP
+    response, so we issue a lightweight ``GET /localapi/v0/status``
+    (without peers) and read that header — exactly like the official
+    Go ``tailscale`` CLI does.
+
+    Returns a semver-style ref string (e.g. ``"v1.94.2"``) or ``None``
+    if the header is absent.
+
+    Raises:
+        TailscaleException: If the daemon is unreachable.
     """
     try:
-        info = api.version()
-        # The JSON payload normally contains "majorMinorPatch" (e.g. "1.94.2")
-        # as well as "short" (e.g. "1.94.2") and "long".
-        mmp = info.get("majorMinorPatch") or info.get("short")
-        if mmp:
-            mmp = mmp.strip()
-            if not mmp.startswith("v"):
-                mmp = "v" + mmp
-            return mmp
-    except Exception:
-        log.debug("Could not query tailscaled version", exc_info=True)
+        probe = LocalAPIBase(socket_path=socket_path)
+        ver = probe.daemon_version()
+        if ver:
+            ver = ver.strip()
+            if not ver.startswith("v"):
+                ver = "v" + ver
+            return ver
+    except Exception as exc:
+        raise TailscaleException.connection_error() from exc
     return None
+
+
+# ---------------------------------------------------------------------------
+# Public factory
+# ---------------------------------------------------------------------------
 
 
 class TailscaleCLI:
@@ -92,86 +133,73 @@ class TailscaleCLI:
         version: Optional[str] = None,
         *,
         socket_path: str = "/run/tailscale/tailscaled.sock",
-    ) -> LocalAPI:
-        """
-        Create a :class:`LocalAPI` handle bound to models generated from the
-        given upstream *version* (tag, branch, or commit hash).
+    ) -> LocalAPIBase:
+        """Create a version-matched :class:`LocalAPI` handle.
 
-        The *version* string is resolved to a Python sub-package under
-        ``tailscale_cli``.  For example ``"v1.82.0"`` → ``tailscale_cli.v1_82_0``.
+        Resolution order:
 
-        Version resolution order:
-
-        1. Explicit *version* argument (if provided).
+        1. Explicit *version* argument (e.g. ``"v1.94.2"``).
         2. Live query of the running ``tailscaled`` daemon via
-           ``GET /localapi/v0/version`` (uses the ``majorMinorPatch`` field).
-        3. Static ref pinned in ``codegen.toml``.
+           ``GET /localapi/v0/version``.
+        3. **Fallback** — the newest generated version package found
+           locally under ``tailscale_cli/``.
 
-        If none of the above yields a version, the API handle is returned
-        without typed models (responses will be raw dicts).
+        If none of the above produces a usable versioned ``LocalAPI``,
+        a bare :class:`LocalAPIBase` (transport-only, no typed methods)
+        is returned.
 
         Args:
-            version:     Upstream ref string (e.g. ``"v1.94.2"``).  When
-                         ``None`` the daemon is queried automatically.
-            socket_path: Path to the tailscaled UNIX socket.
+            version:     Pin to a specific upstream version.
+            socket_path: Path to the ``tailscaled`` UNIX socket.
 
         Returns:
-            A :class:`LocalAPI` instance with version-matched model classes.
-
-        Raises:
-            ImportError: If an explicit *version* was given but models for
-                that version haven't been generated yet.
+            A :class:`LocalAPIBase` subclass with version-specific endpoint
+            methods and typed model returns.
         """
-        # --- 1. Build a bare API handle (no models yet) ----------------------
-        api = LocalAPI(socket_path=socket_path, models=None)
+        # --- 0. Verify the daemon is reachable -----------------------------
+        daemon_version = _query_daemon_version(socket_path)
 
-        # --- 2. Determine the target ref -------------------------------------
-        ref = version  # explicit always wins
-        detected_from_daemon = False
+        # --- 1. Determine the target ref -----------------------------------
+        ref = version
 
         if ref is None:
-            ref = _query_daemon_version(api)
+            ref = daemon_version
             if ref:
-                detected_from_daemon = True
                 log.debug("Detected tailscaled version: %s", ref)
 
-        if ref is None:
-            ref = _default_ref()
-            if ref:
-                log.debug("Falling back to codegen.toml ref: %s", ref)
-
-        # --- 3. Try to load matching generated models ------------------------
-        models = None
+        # --- 2. Try exact-match import for that version --------------------
         if ref:
             pkg = _ref_to_package_name(ref)
-            try:
-                models = importlib.import_module(f"tailscale_cli.{pkg}")
-            except ModuleNotFoundError:
-                if detected_from_daemon:
-                    # Auto-detected version — not fatal, just warn.
-                    log.warning(
-                        "No generated models for daemon version %s "
-                        "(expected package tailscale_cli.%s). "
-                        "Responses will be raw dicts. "
-                        "Run: python -m codegen --pin %s",
-                        ref,
-                        pkg,
-                        ref,
+            VersionedAPI = _load_versioned_api(pkg)
+            if VersionedAPI is not None:
+                log.debug("Loaded versioned LocalAPI from tailscale_cli.%s", pkg)
+                return VersionedAPI(socket_path=socket_path)
+            else:
+                log.debug("No generated package for %s (tailscale_cli.%s)", ref, pkg)
+
+        # --- 3. Fallback to latest local version ---------------------------
+        latest_pkg = _find_latest_version_package()
+        if latest_pkg:
+            VersionedAPI = _load_versioned_api(latest_pkg)
+            if VersionedAPI is not None:
+                if ref:
+                    log.info(
+                        "Exact version %s not available; falling back to %s",
+                        ref, latest_pkg,
                     )
                 else:
-                    # Caller explicitly asked for this version — fail hard.
-                    raise ImportError(
-                        f"No generated models for version {ref!r} "
-                        f"(expected package tailscale_cli.{pkg}).\n"
-                        f"Run: python -m codegen --pin {ref}"
-                    ) from None
+                    log.debug("Using latest local version: %s", latest_pkg)
+                return VersionedAPI(socket_path=socket_path)
 
-        # --- 4. Bind models onto the existing handle -------------------------
-        api._models = models
-        return api
+        # --- 4. Nothing available — bare transport -------------------------
+        log.warning(
+            "No generated LocalAPI packages found. "
+            "Run: python -m codegen --sync-tags"
+        )
+        return LocalAPIBase(socket_path=socket_path)
 
     # Backwards compatibility alias
     @classmethod
-    def v0(cls, *, socket_path: str = "/run/tailscale/tailscaled.sock") -> LocalAPI:
+    def v0(cls, *, socket_path: str = "/run/tailscale/tailscaled.sock") -> LocalAPIBase:
         """Deprecated — use :meth:`connect` instead."""
         return cls.connect(socket_path=socket_path)

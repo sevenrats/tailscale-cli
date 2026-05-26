@@ -41,3 +41,29 @@ go_path = "ipn/ipnstate/ipnstate.go"
 
 # Name of the generated Python module (without .py)
 module_name = "ipnstate"
+
+[[source]]
+# Prefs, MaskedPrefs, LoginProfile, NetworkProfile, AppConnectorPrefs, etc.
+go_path = "ipn/prefs.go"
+module_name = "prefs"
+
+[[source]]
+# State enum, Notify, Options, EngineStatus, etc.
+go_path = "ipn/backend.go"
+module_name = "backend"
+
+[[source]]
+# ServeConfig, TCPPortHandler, HTTPHandler, etc.
+go_path = "ipn/serve.go"
+module_name = "serve"
+
+# -------------------------------------------------------------------
+# LocalAPI surface.  This stanza triggers generation of a versioned
+# localapi.py from the route table in localapi.go.
+# -------------------------------------------------------------------
+
+[localapi]
+# Path inside the upstream repo to the local API handler
+go_path = "ipn/localapi/localapi.go"
+# Name of the generated Python module (without .py)
+module_name = "localapi"

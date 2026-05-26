@@ -71,8 +71,18 @@ def _unwrap_optional(tp: Any) -> Any:
 def _field_specs(cls: Type[Any]) -> Tuple[Tuple[str, Any], ...]:
     """
     Cached field (name, type) pairs for a dataclass.
+
+    Uses ``get_type_hints()`` to resolve string annotations caused by
+    ``from __future__ import annotations`` into real types.
     """
-    return tuple((f.name, f.type) for f in fields(cls))
+    import typing
+
+    try:
+        hints = typing.get_type_hints(cls)
+    except Exception:
+        # Fallback to raw (string) annotations if resolution fails
+        hints = {}
+    return tuple((f.name, hints.get(f.name, f.type)) for f in fields(cls))
 
 
 def _coerce_value(tp: Any, v: Any) -> Any:
