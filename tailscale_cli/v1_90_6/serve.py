@@ -3,7 +3,7 @@ Auto-generated from upstream Go source — DO NOT EDIT.
 
 Source : https://github.com/tailscale/tailscale/blob/28f6c2dbfc5d3f7dde8d566a9214f6e0f55a9d17/ipn/serve.go
 Commit : 28f6c2dbfc5d3f7dde8d566a9214f6e0f55a9d17
-Generated: 2026-03-04T11:26:59Z
+Generated: 2026-05-26T00:53:56Z
 """
 
 from __future__ import annotations

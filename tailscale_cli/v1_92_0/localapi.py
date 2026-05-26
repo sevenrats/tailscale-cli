@@ -7,7 +7,7 @@ HTTP method, query parameters, and (where known) typed returns.
 
 Source : https://github.com/tailscale/tailscale/blob/822adaa259725caca109866843c700e626af24f8/ipn/localapi/localapi.go
 Commit : 822adaa259725caca109866843c700e626af24f8
-Generated: 2026-03-04T11:27:04Z
+Generated: 2026-05-26T00:54:02Z
 """
 
 from __future__ import annotations

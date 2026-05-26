@@ -3,7 +3,7 @@ Auto-generated from upstream Go source — DO NOT EDIT.
 
 Source : https://github.com/tailscale/tailscale/blob/c50fe718222099877069f72e491433b8b217da24/ipn/prefs.go
 Commit : c50fe718222099877069f72e491433b8b217da24
-Generated: 2026-03-04T11:26:55Z
+Generated: 2026-05-26T00:53:52Z
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ class Prefs(SerdeMixin):
     shields_up: bool = False  # json="ShieldsUp"
     advertise_tags: List[str] = field(default_factory=list)  # json="AdvertiseTags"
     hostname: str = ""  # json="Hostname"
-    notepad_ur_ls: bool = False  # json="NotepadURLs"
+    notepad_urls: bool = False  # json="NotepadURLs"
     force_daemon: bool = False  # json="ForceDaemon"
     egg: bool = False  # json="Egg"
     advertise_routes: List[Prefix] = field(default_factory=list)  # json="AdvertiseRoutes"
@@ -90,7 +90,7 @@ class Prefs(SerdeMixin):
         "NetfilterMode": "netfilter_mode",
         "NoSNAT": "no_snat",
         "NoStatefulFiltering": "no_stateful_filtering",
-        "NotepadURLs": "notepad_ur_ls",
+        "NotepadURLs": "notepad_urls",
         "OperatorUser": "operator_user",
         "PostureChecking": "posture_checking",
         "ProfileName": "profile_name",
@@ -154,7 +154,7 @@ class MaskedPrefs(SerdeMixin):
     shields_up_set: bool = False  # json="ShieldsUpSet"
     advertise_tags_set: bool = False  # json="AdvertiseTagsSet"
     hostname_set: bool = False  # json="HostnameSet"
-    notepad_ur_ls_set: bool = False  # json="NotepadURLsSet"
+    notepad_urls_set: bool = False  # json="NotepadURLsSet"
     force_daemon_set: bool = False  # json="ForceDaemonSet"
     egg_set: bool = False  # json="EggSet"
     advertise_routes_set: bool = False  # json="AdvertiseRoutesSet"
@@ -194,7 +194,7 @@ class MaskedPrefs(SerdeMixin):
         "NetfilterModeSet": "netfilter_mode_set",
         "NoSNATSet": "no_snat_set",
         "NoStatefulFilteringSet": "no_stateful_filtering_set",
-        "NotepadURLsSet": "notepad_ur_ls_set",
+        "NotepadURLsSet": "notepad_urls_set",
         "OperatorUserSet": "operator_user_set",
         "PostureCheckingSet": "posture_checking_set",
         "ProfileNameSet": "profile_name_set",

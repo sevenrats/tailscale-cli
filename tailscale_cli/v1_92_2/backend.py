@@ -3,7 +3,7 @@ Auto-generated from upstream Go source — DO NOT EDIT.
 
 Source : https://github.com/tailscale/tailscale/blob/95a957cdd7b5c054289345c04ac271128c84c622/ipn/backend.go
 Commit : 95a957cdd7b5c054289345c04ac271128c84c622
-Generated: 2026-03-04T11:27:06Z
+Generated: 2026-05-26T00:54:04Z
 """
 
 from __future__ import annotations
@@ -51,12 +51,12 @@ class EngineStatus(SerdeMixin):
     r_bytes: int = 0  # json="RBytes"
     w_bytes: int = 0  # json="WBytes"
     num_live: int = 0  # json="NumLive"
-    live_der_ps: int = 0  # json="LiveDERPs"; number of active DERP connections
+    live_derps: int = 0  # json="LiveDERPs"; number of active DERP connections
     live_peers: Dict[NodePublic, Dict[str, Any]] = field(default_factory=dict)  # json="LivePeers"
 
     # JSON key name → Python field name
     __json_map__: ClassVar[Dict[str, str]] = {
-        "LiveDERPs": "live_der_ps",
+        "LiveDERPs": "live_derps",
         "LivePeers": "live_peers",
         "NumLive": "num_live",
         "RBytes": "r_bytes",

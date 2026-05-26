@@ -3,7 +3,7 @@ Auto-generated from upstream Go source — DO NOT EDIT.
 
 Source : https://github.com/tailscale/tailscale/blob/d885b34776cd2e96f1f368a4d31729e37ff8b59b/ipn/ipnstate/ipnstate.go
 Commit : d885b34776cd2e96f1f368a4d31729e37ff8b59b
-Generated: 2026-03-04T11:27:12Z
+Generated: 2026-05-26T00:54:10Z
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ class Status(SerdeMixin):
     backend_state: str = ""  # json="BackendState"
     have_node_key: bool = False  # json="HaveNodeKey"
     auth_url: str = ""  # json="AuthURL"; current URL provided by control to authorize client
-    tailscale_i_ps: List[Addr] = field(default_factory=list)  # json="TailscaleIPs"; Tailscale IP(s) assigned to this node
+    tailscale_ips: List[Addr] = field(default_factory=list)  # json="TailscaleIPs"; Tailscale IP(s) assigned to this node
     _self: Optional[PeerStatus] = None  # json="Self"
     exit_node_status: Optional[ExitNodeStatus] = None  # json="ExitNodeStatus"
     health: List[str] = field(default_factory=list)  # json="Health"
@@ -81,7 +81,7 @@ class Status(SerdeMixin):
         "Peer": "peer",
         "Self": "_self",
         "TUN": "tun",
-        "TailscaleIPs": "tailscale_i_ps",
+        "TailscaleIPs": "tailscale_ips",
         "User": "user",
         "Version": "version",
     }
@@ -110,7 +110,7 @@ class TKAPeer(SerdeMixin):
     name: str = ""  # json="Name"; DNS
     id: NodeID = NodeID(0)  # json="ID"
     stable_id: StableNodeID = StableNodeID("")  # json="StableID"
-    tailscale_i_ps: List[Addr] = field(default_factory=list)  # json="TailscaleIPs"; Tailscale IP(s) assigned to this node
+    tailscale_ips: List[Addr] = field(default_factory=list)  # json="TailscaleIPs"; Tailscale IP(s) assigned to this node
     node_key: NodePublic = NodePublic("")  # json="NodeKey"
     node_key_signature: NodeKeySignature = NodeKeySignature("")  # json="NodeKeySignature"
 
@@ -121,7 +121,7 @@ class TKAPeer(SerdeMixin):
         "NodeKey": "node_key",
         "NodeKeySignature": "node_key_signature",
         "StableID": "stable_id",
-        "TailscaleIPs": "tailscale_i_ps",
+        "TailscaleIPs": "tailscale_ips",
     }
 
 
@@ -191,13 +191,13 @@ class TailnetStatus(SerdeMixin):
 class ExitNodeStatus(SerdeMixin):
     id: StableNodeID = StableNodeID("")  # json="ID"
     online: bool = False  # json="Online"
-    tailscale_i_ps: List[Prefix] = field(default_factory=list)  # json="TailscaleIPs"
+    tailscale_ips: List[Prefix] = field(default_factory=list)  # json="TailscaleIPs"
 
     # JSON key name → Python field name
     __json_map__: ClassVar[Dict[str, str]] = {
         "ID": "id",
         "Online": "online",
-        "TailscaleIPs": "tailscale_i_ps",
+        "TailscaleIPs": "tailscale_ips",
     }
 
 
@@ -232,8 +232,8 @@ class PeerStatus(SerdeMixin):
     os: str = ""  # json="OS"; HostInfo.OS
     user_id: UserID = UserID(0)  # json="UserID"
     alt_sharer_user_id: UserID = UserID(0)  # json="AltSharerUserID"
-    tailscale_i_ps: List[Addr] = field(default_factory=list)  # json="TailscaleIPs"
-    allowed_i_ps: Optional[Dict[str, Any]] = None  # json="AllowedIPs"
+    tailscale_ips: List[Addr] = field(default_factory=list)  # json="TailscaleIPs"
+    allowed_ips: Optional[Dict[str, Any]] = None  # json="AllowedIPs"
     tags: Optional[Dict[str, Any]] = None  # json="Tags"
     primary_routes: Optional[Dict[str, Any]] = None  # json="PrimaryRoutes"
     addrs: List[str] = field(default_factory=list)  # json="Addrs"
@@ -268,7 +268,7 @@ class PeerStatus(SerdeMixin):
     __json_map__: ClassVar[Dict[str, str]] = {
         "Active": "active",
         "Addrs": "addrs",
-        "AllowedIPs": "allowed_i_ps",
+        "AllowedIPs": "allowed_ips",
         "AltSharerUserID": "alt_sharer_user_id",
         "CapMap": "cap_map",
         "Capabilities": "capabilities",
@@ -300,7 +300,7 @@ class PeerStatus(SerdeMixin):
         "ShareeNode": "sharee_node",
         "Tags": "tags",
         "TaildropTarget": "taildrop_target",
-        "TailscaleIPs": "tailscale_i_ps",
+        "TailscaleIPs": "tailscale_ips",
         "TxBytes": "tx_bytes",
         "UserID": "user_id",
         "sshHostKeys": "ssh_host_keys",
